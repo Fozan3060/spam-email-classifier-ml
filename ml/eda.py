@@ -25,11 +25,9 @@ def perform_eda(df):
     plt.title('Bar Chart of Emails')
     plt.xlabel('Number of emails')
     plt.ylabel('Emails Type')
-    df['label'].value_counts().plot(kind='bar')
     plt.xticks([0, 1], ['Ham', 'Spam'])
+    df['label'].value_counts().plot(kind='bar')
 
-    plt.show()
 
     return df
 
-perform_eda(load_data())
