@@ -45,5 +45,6 @@ def text_processing(perform_eda):
 
     return df
     
+text_processing(perform_eda(load_data()))
 
 
