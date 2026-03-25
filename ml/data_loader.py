@@ -1,43 +1,25 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+import os
+
 
 def load_data():
-    df=pd.read_csv('data/spam.csv',encoding='latin-1')
-    print("Initial Data:")
-    print(df.head())
-    print(df.columns.tolist())
+    # get the project root so this works no matter where we run from
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(base_dir, 'data', 'spam.csv')
 
-    print("\nAfter cleaning the columns:\n")
-    df=df.drop(columns=["Unnamed: 2","Unnamed: 3","Unnamed: 4"])
+    # latin-1 encoding because the csv has special chars that break utf-8
+    df = pd.read_csv(file_path, encoding='latin-1')
 
-    print(df.columns.tolist())
-    print(df.head())
+    # csv has 3 junk columns with no data, drop them
+    df = df.drop(columns=["Unnamed: 2", "Unnamed: 3", "Unnamed: 4"])
 
-    print(f"\n Before removing the duplicate rows {df.shape[0]} rows\n")
-    print('\n after removing the duplicate rows:\n')
-    df=df.drop_duplicates()
-    print(df.shape[0])
+    # rename v1/v2 to something readable
+    df = df.rename(columns={'v1': 'label', 'v2': 'message'})
 
-    print("\n Before removing the duplicate columns:\n")
-    print(df.columns.tolist())
-    df = df.loc[:, ~df.columns.duplicated()]
-    print("\n After removing the duplicate columns:\n")
-    print(df.columns.tolist())
+    # using map instead of LabelEncoder so we control which is 0 and which is 1
+    df['label'] = df['label'].map({'ham': 0, 'spam': 1})
 
-    print("\n Checkign null values:\n")
-    print(df.isnull().sum())
-
-    print("\n After removing the null values:\n")
     df = df.dropna()
-    print(df.shape[0])
-
-    print("\nRenaming columns:\n")
-    df = df.rename(columns={'v1':'label','v2':'message'})
-    print(df.columns.tolist())
-
-    le=LabelEncoder()
-    df['label'] = le.fit_transform(df['label'])
-    print("\nAfter encoding the labels:\n")
-    print(df.head())
+    df = df.drop_duplicates()
 
     return df
