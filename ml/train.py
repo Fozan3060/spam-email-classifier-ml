@@ -69,8 +69,8 @@ print("=" * 70)
 print(f"  {'Model':<25} {'Accuracy':>10} {'Precision':>10} {'Recall':>10} {'F1':>10} {'AUC':>10}")
 print("-" * 70)
 for name, res in all_results.items():
-    auc = f"{res['auc']:.4f}" if 'auc' in res else "N/A"
-    print(f"  {name:<25} {res['accuracy']:>10.4f} {res['precision']:>10.4f} {res['recall']:>10.4f} {res['f1']:>10.4f} {auc:>10}")
+    auc_val = f"{res['auc']:.4f}" if 'auc' in res else "N/A"
+    print(f"  {name:<25} {res['accuracy']:>10.4f} {res['precision']:>10.4f} {res['recall']:>10.4f} {res['f1']:>10.4f} {auc_val:>10}")
 print("=" * 70)
 
 # --- ROC Curve Plot ---
