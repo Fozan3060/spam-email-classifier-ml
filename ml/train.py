@@ -1,133 +1,100 @@
-from feature_extraction import feature_extraction
-from sklearn.naive_bayes import MultinomialNB
-from sklearn import metrics , svm
+from feature_extraction import extract_features
+from evaluate import evaluate_model, tune_and_evaluate
 from imblearn.over_sampling import SMOTE
 from sklearn.preprocessing import MaxAbsScaler
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import LogisticRegression
-import numpy as np
-from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from models import naive_bayes, knn, svm_model, logistic, neural_network
 
-X_train_tfidf, X_test_tfidf, y_train, y_test = feature_extraction()
+# --- Data Preparation ---
+X_train, X_test, y_train, y_test = extract_features()
+
+# oversample minority class (spam) so the model doesn't just predict ham every time
 sm = SMOTE(random_state=42)
-print("After Oversampling of minority class")
-X_resampled_train, y_resampled_train = sm.fit_resample(X_train_tfidf, y_train)
+X_resampled, y_resampled = sm.fit_resample(X_train, y_train)
+
+# scale features for models that need it (knn, svm, neural network)
+# MaxAbsScaler keeps sparse matrix format unlike StandardScaler
 scaler = MaxAbsScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+X_resampled_scaled = scaler.fit_transform(X_resampled)
+X_test_scaled_resample = scaler.transform(X_test)
 
+# --- Model Registry ---
+# each module has: create_model(), get_param_grid(), NEEDS_SCALING
+# to add a new model: create the file in models/, add it here
+models = [
+    ("Naive Bayes", naive_bayes),
+    ("KNN", knn),
+    ("SVM", svm_model),
+    ("Logistic Regression", logistic),
+    ("Neural Network", neural_network),
+]
 
-print("Naive Bayes using mutlinomialNB")
-gnb = MultinomialNB()
-gnb.fit(X_train_tfidf, y_train)
+# --- Train, Evaluate & Tune All Models ---
+all_results = {}
+best_models = {}  # store tuned models for roc curve plotting
 
-y_pred = gnb.predict(X_test_tfidf)
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Classification Report:\n", metrics.classification_report(y_test, y_pred))
+for name, module in models:
+    model = module.create_model()
+    param_grid = module.get_param_grid()
 
+    # pick scaled or unscaled data based on what the model needs
+    if module.NEEDS_SCALING:
+        X_tr, X_te = X_train_scaled, X_test_scaled
+        X_tr_sm, X_te_sm = X_resampled_scaled, X_test_scaled_resample
+    else:
+        X_tr, X_te = X_train, X_test
+        X_tr_sm, X_te_sm = X_resampled, X_test
 
-print("Naive Bayes after oversampling")
-gnb.fit(X_resampled_train, y_resampled_train)
-y_pred = gnb.predict(X_test_tfidf)
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Classification Report:\n", metrics.classification_report(y_test, y_pred))
+    # before smote - baseline to see how model does with imbalanced data
+    evaluate_model(model, X_tr, X_te, y_train, y_test, f"{name} (Before SMOTE)")
 
-print("KNN before oversampling")
-X_train_scaled = scaler.fit_transform(X_train_tfidf)
-X_test_scaled = scaler.transform(X_test_tfidf)
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_train_scaled, y_train)
-y_pred = knn.predict(X_test_scaled)
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Classification Report:\n", metrics.classification_report(y_test, y_pred))
+    # after smote - should improve recall on spam (minority class)
+    evaluate_model(module.create_model(), X_tr_sm, X_te_sm, y_resampled, y_test, f"{name} (After SMOTE)")
 
-print("KNN after oversampling")
-X_resampled_scaled = scaler.fit_transform(X_resampled_train)
-X_test_scaled = scaler.transform(X_test_tfidf)
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_resampled_scaled, y_resampled_train)
-y_pred = knn.predict(X_test_scaled)
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Classification Report:\n", metrics.classification_report(y_test, y_pred))
+    # grid search to find best hyperparameters
+    best_model, results = tune_and_evaluate(
+        module.create_model(), param_grid, X_tr_sm, X_te_sm, y_resampled, y_test, name
+    )
+    all_results[name] = results
+    best_models[name] = (best_model, X_te_sm)
 
-print("Finding best K value using k cross validation")
-parameters = {'n_neighbors': [3, 5, 7, 9], 'weights': ['uniform', 'distance']}
-clf = GridSearchCV(KNeighborsClassifier(), parameters, scoring='f1', cv=5)
-clf.fit(X_resampled_scaled, y_resampled_train)
+# --- Comparison Table ---
+# final side-by-side comparison of all tuned models
+print("\n" + "=" * 70)
+print("  MODEL COMPARISON (Tuned with GridSearchCV + SMOTE)")
+print("=" * 70)
+print(f"  {'Model':<25} {'Accuracy':>10} {'Precision':>10} {'Recall':>10} {'F1':>10} {'AUC':>10}")
+print("-" * 70)
+for name, res in all_results.items():
+    auc_val = f"{res['auc']:.4f}" if 'auc' in res else "N/A"
+    print(f"  {name:<25} {res['accuracy']:>10.4f} {res['precision']:>10.4f} {res['recall']:>10.4f} {res['f1']:>10.4f} {auc_val:>10}")
+print("=" * 70)
 
-print("Best Parameters found KNN:", clf.best_params_)
-print("Best Cross-Validation Score (F1): KNN", clf.best_score_)
-# Final Evaluation of the tuned model
-y_pred_tuned = clf.predict(X_test_scaled)
-print("Final Tuned KNN Accuracy:", metrics.accuracy_score(y_test, y_pred_tuned))
-print("Final Tuned KNN Classification Report:\n", metrics.classification_report(y_test, y_pred_tuned))
+# --- ROC Curve Plot ---
+# shows how each model trades off between true positive rate and false positive rate
+plt.figure(figsize=(10, 7))
 
+for name, (best_mdl, X_te) in best_models.items():
+    # get probability scores for roc curve
+    if hasattr(best_mdl, 'predict_proba'):
+        y_prob = best_mdl.predict_proba(X_te)[:, 1]
+    elif hasattr(best_mdl, 'decision_function'):
+        y_prob = best_mdl.decision_function(X_te)
+    else:
+        continue
 
-print("SVM after oversampling")
-svc = svm.SVC()
-param_grid = {                                                                                                                             
-      'C': [1, 10],                                                                                                                          
-      'gamma': [0.1, 0.01],                                                                                                                  
-      'kernel': ['linear']
-  }   
-grid_search_svm = GridSearchCV(estimator=svc, param_grid=param_grid, cv=5, scoring='f1')
-grid_search_svm.fit(X_resampled_scaled, y_resampled_train)
-print("Best hyperparameters found in svm: ", grid_search_svm.best_params_)
-print("Best Cross-Validation Score (F1) SVM:", grid_search_svm.best_score_)
-# Final Evaluation of the tuned model
-y_pred_tuned = grid_search_svm.predict(X_test_scaled)
-print("Final Tuned SVM Accuracy:", metrics.accuracy_score(y_test, y_pred_tuned))
-print("Final Tuned SVM Classification Report:\n", metrics.classification_report(y_test, y_pred_tuned))
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.4f})")
 
-print("Logistic Regression")
-model = LogisticRegression(max_iter=1000)
-model.fit(X_train_tfidf, y_train)
-y_pred = model.predict(X_test_tfidf)
-print("Classificaiton Report using Logisctic Regression : ",metrics.classification_report(y_test,y_pred))
-
-print("Logistic Regression after oversampling")
-model = LogisticRegression(max_iter=1000)
-model.fit(X_resampled_train, y_resampled_train)
-y_pred = model.predict(X_test_tfidf)
-print("Classificaiton Report using Logisctic Regression after oversampling: ",metrics.classification_report(y_test,y_pred))
-
-print("Logictic Regression Best hyper parameters using grid serach ")
-param_grid = {
-    'C': np.logspace(-3, 3, 7), # Generates 7 values on a logarithmic scale
-    'penalty': ['l1', 'l2']
-}
-grid_search = GridSearchCV(
-    estimator=model,
-    param_grid=param_grid,
-    cv=5,            # Use 5-fold cross-validation
-    scoring='f1', # Metric to optimize
-    verbose=1,       # Output progress
-    n_jobs=-1        # Use all available processors
-)
-grid_search.fit(X_resampled_train, y_resampled_train)
-print("Tuned Hyperparameters (best parameters):", grid_search.best_params_)
-print("Best cross-validation score:", grid_search.best_score_)
-grid_search.predict(X_test_tfidf)
-
-print("Neural Networking:")
-model = MLPClassifier(hidden_layer_sizes=(100,), max_iter=1000, random_state=42)
-model.fit(X_train_scaled, y_train)
-y_pred=model.predict(X_test_scaled)
-print("Score",metrics.classification_report(y_test,y_pred))
-
-print("Neural networking after oversampling")
-model.fit(X_resampled_scaled, y_resampled_train)
-y_pred=model.predict(X_test_scaled)
-print("Score",metrics.classification_report(y_test,y_pred))
-
-
-print("Neural netowrking after grid search cv")
-param_grid = {
-    'hidden_layer_sizes': [(50,), (100,)],
-    'activation': ['tanh', 'relu'],
-    'solver': ['adam', 'sgd'],
-    'alpha': [0.0001, 0.01],
-}
-grid_search = GridSearchCV(model, param_grid, cv=5, scoring='f1', n_jobs=-1) #
-grid_search.fit(X_resampled_scaled, y_resampled_train)
-y_pred=grid_search.predict(X_test_scaled)
-print("Score",metrics.classification_report(y_test,y_pred))
+# diagonal line = random classifier (50/50 guess)
+plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve - All Models Comparison')
+plt.legend(loc='lower right')
+plt.tight_layout()
+plt.show()
