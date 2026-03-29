@@ -7,10 +7,10 @@ def create_model():
 
 
 def get_param_grid():
+    # linear kernel ignores gamma, so only tuning C
     return {
-        'C': [1, 10],             # regularization - higher = fits training data more
-        'gamma': [0.1, 0.01],     # how far each training example's influence reaches
-        'kernel': ['linear']      # linear works best for text (high dimensional data)
+        'C': [1, 10],
+        'kernel': ['linear']
     }
 
 
