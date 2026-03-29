@@ -8,13 +8,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ml'))
 from text_processing import preprocess_text
 import pandas as pd
 
-# load the saved model and vectorizer once when this file is imported
-# not inside the function — loading every request would be slow
-model_path = os.path.join(os.path.dirname(__file__), '..', 'ml', 'saved_models', 'best_model.pkl')
-vectorizer_path = os.path.join(os.path.dirname(__file__), '..', 'ml', 'saved_models', 'vectorizer.pkl')
+# load everything once when this file is imported — not per request
+saved_dir = os.path.join(os.path.dirname(__file__), '..', 'ml', 'saved_models')
 
-model = joblib.load(model_path)
-vectorizer = joblib.load(vectorizer_path)
+model = joblib.load(os.path.join(saved_dir, 'best_model.pkl'))
+vectorizer = joblib.load(os.path.join(saved_dir, 'vectorizer.pkl'))
+scaler = joblib.load(os.path.join(saved_dir, 'scaler.pkl'))
+needs_scaling = joblib.load(os.path.join(saved_dir, 'needs_scaling.pkl'))
 
 
 def predict_spam(message: str):
@@ -28,10 +28,14 @@ def predict_spam(message: str):
     # step 3: convert to tfidf vector using the saved vectorizer
     text_vector = vectorizer.transform([processed_text])
 
-    # step 4: predict using the saved model
+    # step 4: scale if the best model needs it (knn, svm, neural network)
+    if needs_scaling:
+        text_vector = scaler.transform(text_vector)
+
+    # step 5: predict using the saved model
     prediction = model.predict(text_vector)[0]
 
-    # step 5: get probability if available
+    # step 6: get probability if available
     probability = None
     if hasattr(model, 'predict_proba'):
         probability = model.predict_proba(text_vector)[0][1]  # spam probability

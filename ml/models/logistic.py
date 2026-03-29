@@ -10,8 +10,8 @@ def get_param_grid():
     # using l1_ratio instead of penalty (penalty is deprecated in sklearn 1.8+)
     # l1_ratio=1 means l1, l1_ratio=0 means l2
     return {
-        'C': [0.01, 0.1, 1, 10, 100],
-        'l1_ratio': [0, 0.5, 1]
+        'C': [0.1, 1, 10],
+        'l1_ratio': [0, 1]
     }
 
 
