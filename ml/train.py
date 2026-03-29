@@ -1,10 +1,12 @@
-from feature_extraction import extract_features
+import os
+from feature_extraction import extract_features, vectorizer
 from evaluate import evaluate_model, tune_and_evaluate
 from imblearn.over_sampling import SMOTE
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from models import naive_bayes, knn, svm_model, logistic, neural_network
+import joblib
 
 # --- Data Preparation ---
 X_train, X_test, y_train, y_test = extract_features()
@@ -98,3 +100,18 @@ plt.title('ROC Curve - All Models Comparison')
 plt.legend(loc='lower right')
 plt.tight_layout()
 plt.show()
+
+# --- Save Best Model ---
+best_model_name = max(all_results, key=lambda model_name: all_results[model_name]['f1'])
+print(f"\nBest model: {best_model_name} (F1: {all_results[best_model_name]['f1']:.4f})")
+
+# save the trained model object and the vectorizer for backend inference
+save_dir = os.path.join(os.path.dirname(__file__), 'saved_models')
+os.makedirs(save_dir, exist_ok=True)
+
+# best_models[name] is a tuple of (model_object, test_data) — we only need the model
+joblib.dump(best_models[best_model_name][0], os.path.join(save_dir, 'best_model.pkl'))
+joblib.dump(vectorizer, os.path.join(save_dir, 'vectorizer.pkl'))
+
+print(f"Model saved to ml/saved_models/best_model.pkl")
+print(f"Vectorizer saved to ml/saved_models/vectorizer.pkl")
