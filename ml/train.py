@@ -7,6 +7,7 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from models import naive_bayes, knn, svm_model, logistic, neural_network
 import joblib
+import json
 
 # --- Data Preparation ---
 X_train, X_test, y_train, y_test = extract_features()
@@ -76,8 +77,17 @@ for name, res in all_results.items():
 print("=" * 70)
 
 # --- ROC Curve Plot ---
-# shows how each model trades off between true positive rate and false positive rate
+# colors match the dashboard UI for consistency
+MODEL_COLORS = {
+    "Naive Bayes": "#8b5cf6",
+    "KNN": "#06b6d4",
+    "SVM": "#f59e0b",
+    "Logistic Regression": "#10b981",
+    "Neural Network": "#ef4444",
+}
+
 plt.figure(figsize=(10, 7))
+plt.style.use('dark_background')
 
 for name, (best_mdl, X_te) in best_models.items():
     # get probability scores for roc curve
@@ -90,7 +100,7 @@ for name, (best_mdl, X_te) in best_models.items():
 
     fpr, tpr, _ = roc_curve(y_test, y_prob)
     roc_auc = auc(fpr, tpr)
-    plt.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.4f})")
+    plt.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.4f})", color=MODEL_COLORS.get(name), linewidth=2)
 
 # diagonal line = random classifier (50/50 guess)
 plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
@@ -131,3 +141,25 @@ joblib.dump(needs_scaling, os.path.join(save_dir, 'needs_scaling.pkl'))
 print(f"Model saved to ml/saved_models/best_model.pkl")
 print(f"Vectorizer saved to ml/saved_models/vectorizer.pkl")
 print(f"Scaler saved to ml/saved_models/scaler.pkl")
+
+# --- Save results as JSON for the dashboard API ---
+# convert metrics to json-friendly format (confusion_matrix and classification_report are not serializable)
+dashboard_results = {}
+for name, res in all_results.items():
+    dashboard_results[name] = {
+        'accuracy': res['accuracy'],
+        'precision': res['precision'],
+        'recall': res['recall'],
+        'f1': res['f1'],
+        'auc': res.get('auc', None)
+    }
+
+dashboard_data = {
+    'best_model': best_model_name,
+    'results': dashboard_results
+}
+
+with open(os.path.join(save_dir, 'results.json'), 'w') as f:
+    json.dump(dashboard_data, f, indent=2)
+
+print("Results saved to ml/saved_models/results.json")
