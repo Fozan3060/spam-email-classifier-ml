@@ -39,7 +39,7 @@ spam-email-classifier-ml/
 │   │   ├── logistic.py
 │   │   └── neural_network.py
 │   └── saved_models/           # saved model, vectorizer, scaler, results
-├── api/
+├── backend/
 │   ├── main.py                 # FastAPI endpoints
 │   └── predictor.py            # loads model and predicts
 ├── frontend/
@@ -78,7 +78,7 @@ python3 train.py
 
 ### Start the API
 ```bash
-cd api
+cd backend
 uvicorn main:app --reload
 ```
 

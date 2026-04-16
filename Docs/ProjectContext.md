@@ -58,7 +58,7 @@ spam-email-classifier-ml/
 │       ├── needs_scaling.pkl
 │       ├── results.json
 │       └── roc_curve.png
-├── api/
+├── backend/
 │   ├── main.py
 │   └── predictor.py
 ├── frontend/
@@ -177,7 +177,7 @@ cd ml && python3 train.py
 
 Start API:
 ```
-cd api && uvicorn main:app --reload
+cd backend && uvicorn main:app --reload
 ```
 
 Start frontend:

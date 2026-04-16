@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 *.csv
 !data/spam.csv
+node_modules/
+dist/
+.vite/
