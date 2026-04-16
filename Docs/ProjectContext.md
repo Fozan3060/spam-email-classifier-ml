@@ -1,6 +1,6 @@
 # Spam Email Classifier ML Project – Context File
 
-This document defines the full development plan, architecture, git workflow, and setup steps for the project.
+This document defines the architecture, structure, and development workflow for the project.
 
 ---
 
@@ -8,40 +8,75 @@ This document defines the full development plan, architecture, git workflow, and
 
 Full-stack machine learning system to classify emails as spam or not spam using multiple models:
 
+* Naive Bayes (MultinomialNB)
 * KNN
-* Naive Bayes
-* Logistic Regression
 * SVM
-* Neural Network
+* Logistic Regression
+* Neural Network (MLPClassifier)
 
 Includes:
 
-* Model comparison (accuracy, precision, recall, F1)
-* FastAPI backend
-* React frontend (Bun + Tailwind v4)
+* Model comparison (accuracy, precision, recall, F1, AUC, confusion matrix, ROC curve)
+* SMOTE for class imbalance handling
+* GridSearchCV for hyperparameter tuning
+* FastAPI backend for inference
+* React frontend with classifier and dashboard (Bun + Vite + Tailwind v4)
 
 ---
 
 # 2. Repository Details
 
-Repository Name:
-spam-email-classifier-ml
+Repository Name: spam-email-classifier-ml
+
+Dataset: SMS Spam Collection (UCI ML Repository) - 5,169 messages
 
 ---
 
 # 3. Project Structure
 
+```
 spam-email-classifier-ml/
-│
-├── frontend/
-├── backend/
 ├── ml/
-├── models/
+│   ├── data_loader.py
+│   ├── eda.py
+│   ├── text_processing.py
+│   ├── feature_extraction.py
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── metrics.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── naive_bayes.py
+│   │   ├── knn.py
+│   │   ├── svm_model.py
+│   │   ├── logistic.py
+│   │   └── neural_network.py
+│   └── saved_models/
+│       ├── best_model.pkl
+│       ├── vectorizer.pkl
+│       ├── scaler.pkl
+│       ├── needs_scaling.pkl
+│       ├── results.json
+│       └── roc_curve.png
+├── api/
+│   ├── main.py
+│   └── predictor.py
+├── frontend/
+│   └── src/
+│       ├── App.tsx
+│       └── components/
+│           ├── Dashboard.tsx
+│           └── ui/
+│               ├── button.tsx
+│               ├── card.tsx
+│               └── textarea.tsx
 ├── data/
-├── notebooks/
-├── tests/
-├── README.md
-└── .gitignore
+│   └── spam.csv
+├── Docs/
+│   └── ProjectContext.md
+├── .gitignore
+└── README.md
+```
 
 ---
 
@@ -50,16 +85,16 @@ spam-email-classifier-ml/
 Type: Modular Monolith
 
 Flow:
-Frontend (React)
-↓
-FastAPI Backend
-↓
-ML Model (loaded for inference)
+```
+Frontend (React) → FastAPI Backend → ML Model (loaded for inference)
+```
 
 Notes:
 
 * Training is separate from inference
-* Backend only loads trained model
+* Backend only loads the saved model
+* train.py saves results.json which the API reads for the dashboard
+* Models are trained with SMOTE + GridSearchCV, best model is saved as pickle
 
 ---
 
@@ -70,292 +105,108 @@ Main Branches:
 * main (production)
 * develop (active development)
 
-Feature Branch Naming:
-feature/<feature-name>
+Feature Branch Naming: feature/<feature-name>
 
 ---
 
-# 6. Branch Setup Commands
-
-Initialize repo:
-
-git init
-git add .
-git commit -m "initial project setup"
-
-Set main branch:
-
-git branch -M main
-
-Create develop branch:
-
-git checkout -b develop
-
-Create first feature branch:
-
-git checkout -b feature/project-setup
-
----
-
-# 7. Branching Strategy
+# 6. Branching Strategy
 
 For every new feature:
 
+```
 git checkout develop
 git pull
 git checkout -b feature/<feature-name>
+```
 
-After completion:
-
-git checkout develop
-git merge feature/<feature-name>
+After completion: create PR to develop
 
 Release:
 
+```
 git checkout main
 git merge develop
+```
 
 ---
 
-# 8. Feature Branch Plan (Phases)
+# 7. ML Pipeline
 
-Phase 1: Setup
+1. Data Loading (data_loader.py) - Load CSV, drop junk columns, rename, encode labels, drop nulls/duplicates
+2. EDA (eda.py) - Class distribution, message length analysis, visualizations
+3. Text Preprocessing (text_processing.py) - Lowercase, remove special chars, remove stopwords, lemmatization
+4. Feature Extraction (feature_extraction.py) - TF-IDF vectorization with train/test split (80/20)
+5. Training (train.py) - Train all 5 models before/after SMOTE + GridSearchCV
+6. Evaluation (evaluate.py + metrics.py) - Accuracy, precision, recall, F1, confusion matrix, ROC/AUC
 
-* feature/project-setup
-
-Phase 2: ML Pipeline
-
-* feature/dataset-loading
-* feature/text-preprocessing
-* feature/feature-extraction
-* feature/naive-bayes-model
-* feature/other-models
-* feature/model-evaluation
-
-Phase 3: Backend
-
-* feature/fastapi-setup
-* feature/prediction-api
-
-Phase 4: Frontend
-
-* feature/react-setup
-* feature/ui-input
-* feature/api-integration
-* feature/result-display
-
-Phase 5: Advanced Features
-
-* feature/model-comparison-dashboard
-* feature/visualizations
+Each model file in models/ has a standardized interface:
+* create_model() - returns fresh model instance
+* get_param_grid() - returns hyperparameter grid for GridSearchCV
+* NEEDS_SCALING - boolean flag for whether model needs scaled features
 
 ---
 
-# 9. Frontend Setup (Bun + React + Tailwind)
+# 8. Frontend
 
-Create app:
+Stack: Bun + Vite + React + TypeScript + Tailwind CSS v4
 
-bun create vite frontend
-
-Select:
-
-* React
-* TypeScript + React Compiler
-
-Install dependencies:
-
-cd frontend
-bun install
-
-Run app:
-
-bun run dev
+Two views:
+* Classify tab - paste email, get spam/ham prediction with confidence
+* Dashboard tab - model comparison table, ROC curve, interactive model cards, metric explainer
 
 ---
 
-# 10. Tailwind Setup
+# 9. Backend
 
-Install:
+Stack: FastAPI + Uvicorn
 
-bun add -d tailwindcss postcss autoprefixer
-
-Initialize:
-
-bunx tailwindcss init -p
-
-Update tailwind.config.js:
-
-content: [
-"./index.html",
-"./src/**/*.{js,ts,jsx,tsx}",
-]
-
-Add to CSS:
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+Endpoints:
+* GET / - health check
+* POST /predict - classify an email message
+* GET /models - return model comparison data (reads from results.json)
+* /static - serves ROC curve image
 
 ---
 
-# 11. Backend Setup (FastAPI)
+# 10. Running the Project
 
-Create backend folder:
+Train models:
+```
+cd ml && python3 train.py
+```
 
-mkdir backend
-cd backend
+Start API:
+```
+cd api && uvicorn main:app --reload
+```
 
-Create virtual environment:
-
-python -m venv venv
-
-Activate:
-
-Mac/Linux:
-source venv/bin/activate
-
-Windows:
-venv\Scripts\activate
-
-Install dependencies:
-
-pip install fastapi uvicorn scikit-learn pandas numpy
-
-Run server:
-
-uvicorn main:app --reload
+Start frontend:
+```
+cd frontend && bun install && bun run dev
+```
 
 ---
 
-# 12. ML Pipeline Structure
+# 11. Important Rules
 
-(Add ROC-AUC evaluation as part of model comparison)
-
-Metrics to include:
-
-* Accuracy
-* Precision
-* Recall
-* F1 Score
-* ROC Curve
-* AUC Score
-
-Note:
-
-* ROC-AUC will help compare model performance beyond accuracy
-* Especially useful for imbalanced datasets like spam detection
-
-ml/
-│
-├── data_loader.py
-├── preprocessing.py
-├── feature_extraction.py
-├── models/
-│   ├── knn_model.py
-│   ├── naive_bayes_model.py
-│   ├── logistic_model.py
-│   ├── svm_model.py
-│   └── neural_network_model.py
-│
-├── train.py
-├── evaluate.py
-└── metrics.py
-
-ml/
-│
-├── data_loader.py
-├── preprocessing.py
-├── feature_extraction.py
-├── models/
-│   ├── knn_model.py
-│   ├── naive_bayes_model.py
-│   ├── logistic_model.py
-│   ├── svm_model.py
-│   └── neural_network_model.py
-│
-├── train.py
-├── evaluate.py
-└── metrics.py
+* Do NOT train models in the API
+* Backend only loads saved model for inference
+* fit on train, transform on test (data leakage prevention)
+* SMOTE only on training data, never test data
+* MaxAbsScaler to preserve sparse matrix format
 
 ---
 
-# 13. Development Order
+# 12. .gitignore
 
-1. Project setup and git
-2. Dataset loading
-3. Text preprocessing
-4. Feature extraction (TF-IDF / BoW)
-5. Train Naive Bayes (baseline)
-6. Evaluation metrics
-7. Train other models
-8. FastAPI backend
-9. React frontend
-
----
-
-# 14. Git Commit Strategy
-
-Good commit examples:
-
-* setup project structure
-* add dataset loader
-* implement preprocessing pipeline
-* train naive bayes model
-* add fastapi prediction endpoint
-* connect frontend with backend
-
----
-
-# 15. Important Rules
-
-* Do NOT train models in API
-* Save trained model in /models
-* Backend only loads model
-
----
-
-# 16. .gitignore
-
-node_modules/
-venv/
-**pycache**/
+```
+__pycache__/
+*.pyc
+*.pyo
 .env
-models/*.pkl
-
----
-
-# 17. Future Enhancements
-
-Core Enhancements:
-
-* Model comparison dashboard (table + filters)
-* Confusion matrix visualization (per model)
-* ROC Curve visualization (per model)
-* AUC comparison across models (bar/line chart)
-* Performance charts (Accuracy, Precision, Recall, F1)
-* Docker deployment (frontend + backend)
-
-Advanced Enhancements (to make it stand out):
-
-* Threshold tuning UI (adjust decision threshold and see metrics change)
-* Class imbalance handling (SMOTE or class weights) with comparison
-* Cross-validation results (k-fold) visualization
-* Model persistence/versioning (save multiple trained models)
-* Inference latency comparison (ms per model)
-* API rate limiting & logging
-* Basic auth for dashboard
-* CI/CD pipeline (GitHub Actions) for lint/test/build
-* Docker Compose for one-command run
-* Simple caching layer for repeated predictions
-* Downloadable report (CSV/JSON of metrics)
-
-UI Ideas:
-
-* Tabs: Predict | Compare Models | Visualizations
-* Charts: ROC, Confusion Matrix heatmap, Metric bars
-* Clean cards for each model with key stats
-
-Notes:
-
-* Keep features incremental; don’t build everything at once.
-* Prioritize: ROC/AUC + Confusion Matrix + Comparison Dashboard first.
+*.pkl
+*.joblib
+.DS_Store
+*.csv
+!data/spam.csv
+```
