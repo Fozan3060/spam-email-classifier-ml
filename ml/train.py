@@ -87,7 +87,7 @@ MODEL_COLORS = {
 }
 
 plt.figure(figsize=(10, 7))
-plt.style.use('dark_background')
+plt.style.use('default')
 
 for name, (best_mdl, X_te) in best_models.items():
     # get probability scores for roc curve
@@ -103,7 +103,7 @@ for name, (best_mdl, X_te) in best_models.items():
     plt.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.4f})", color=MODEL_COLORS.get(name), linewidth=2)
 
 # diagonal line = random classifier (50/50 guess)
-plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
+plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier', linewidth=1.5)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('ROC Curve - All Models Comparison')
