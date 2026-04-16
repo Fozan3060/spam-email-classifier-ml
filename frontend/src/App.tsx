@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Mail, ShieldAlert, ShieldCheck, Loader2, LayoutDashboard, Send } from 'lucide-react'
 import Dashboard from '@/components/Dashboard'
+import { API_URL } from '@/lib/api'
 
 type PredictionResult = {
   prediction: string
@@ -26,7 +27,7 @@ function Classifier() {
     setResult(null)
 
     try {
-      const response = await fetch('http://localhost:8000/predict', {
+      const response = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),

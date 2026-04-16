@@ -10,7 +10,7 @@ app = FastAPI(title="Spam Email Classifier API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],  # allows all origins (localhost + deployed frontend)
     allow_methods=["*"],
     allow_headers=["*"],
 )
