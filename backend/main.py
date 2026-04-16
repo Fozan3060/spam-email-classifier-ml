@@ -10,7 +10,7 @@ app = FastAPI(title="Spam Email Classifier API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],  # allows all origins (localhost + deployed frontend)
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -37,7 +37,7 @@ MODEL_INFO = {
         "color": "#06b6d4",
         "description": "Classifies emails by finding the most similar emails in the training data. Like asking your neighbors — if most similar emails are spam, this one probably is too.",
         "how_it_works": "Converts each email into numbers (TF-IDF), then measures the distance to all training emails. The K closest emails 'vote' — majority wins.",
-        "strengths": ["Simple to understand", "No training phase needed", "Works with any data type"],
+        "strengths": ["Simple to understand", "Easy to implement", "Works with any data type"],
         "weaknesses": ["Slow on large datasets", "Sensitive to irrelevant features", "Struggles with high dimensions"],
     },
     "SVM": {
@@ -46,7 +46,7 @@ MODEL_INFO = {
         "color": "#f59e0b",
         "description": "Finds the best boundary line that separates spam from ham. Maximizes the gap between the two classes for the clearest separation possible.",
         "how_it_works": "Imagine plotting all emails as points in space. SVM draws a line (or hyperplane) that best separates spam points from ham points, maximizing the margin between them.",
-        "strengths": ["Great with high-dimensional data", "Effective on text classification", "Handles clear margins well"],
+        "strengths": ["Great with high-dimensional data", "Effective on text classification", "Memory efficient — only stores support vectors"],
         "weaknesses": ["Slow to train on large datasets", "Hard to interpret results", "Needs feature scaling"],
     },
     "Logistic Regression": {
@@ -56,7 +56,7 @@ MODEL_INFO = {
         "description": "Uses a mathematical function (sigmoid) to calculate spam probability between 0% and 100%. Despite the name, it's a classification algorithm, not regression.",
         "how_it_works": "Assigns a weight to each word. Words like 'free' and 'winner' get high positive weights (spam signals). Sums all weights and passes through a sigmoid function to get a probability.",
         "strengths": ["Fast and efficient", "Gives probability scores", "Easy to interpret which words matter"],
-        "weaknesses": ["Assumes linear relationship", "Can underfit complex patterns"],
+        "weaknesses": ["Assumes linear relationship", "Can underfit complex patterns", "Struggles with non-linear decision boundaries"],
     },
     "Neural Network": {
         "type": "Deep Learning",
@@ -64,8 +64,8 @@ MODEL_INFO = {
         "color": "#ef4444",
         "description": "Inspired by the human brain — layers of connected neurons that learn complex patterns. The most powerful model but also the most complex.",
         "how_it_works": "Data passes through layers of neurons. Each neuron takes inputs, applies weights, and passes through an activation function. The network adjusts weights through backpropagation until it learns to distinguish spam from ham.",
-        "strengths": ["Learns complex patterns", "Best overall performance", "Adapts to any data type"],
-        "weaknesses": ["Slower to train", "Needs more data", "Hard to interpret (black box)"],
+        "strengths": ["Learns complex non-linear patterns", "Can achieve high accuracy with tuning", "Flexible architecture — adjustable layers and neurons"],
+        "weaknesses": ["Slower to train", "Prone to overfitting on small datasets", "Hard to interpret (black box)"],
     }
 }
 

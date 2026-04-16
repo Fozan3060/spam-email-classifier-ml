@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_URL } from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
   Brain, Users, SeparatorHorizontal, TrendingUp, Network,
@@ -148,7 +149,7 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('http://localhost:8000/models')
+    fetch(`${API_URL}/models`)
       .then(res => res.json())
       .then(setData)
       .catch(() => setError('Could not load dashboard data. Make sure the API is running.'))
@@ -253,7 +254,7 @@ export default function Dashboard() {
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="pt-6 flex justify-center">
             <img
-              src="http://localhost:8000/static/roc_curve.png"
+              src={`${API_URL}/static/roc_curve.png`}
               alt="ROC Curve Comparison"
               className="max-w-full rounded-lg"
               onError={(e) => {
