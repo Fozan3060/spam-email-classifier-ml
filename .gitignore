@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.joblib
+.DS_Store
+*.csv
+!data/spam.csv
+node_modules/
+dist/
+.vite/

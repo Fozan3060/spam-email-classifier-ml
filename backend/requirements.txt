@@ -1,0 +1,10 @@
+fastapi==0.128.0
+uvicorn==0.40.0
+scikit-learn==1.8.0
+pandas==3.0.0
+numpy==2.4.1
+nltk==3.9.3
+joblib==1.5.3
+imbalanced-learn==0.14.1
+matplotlib==3.10.8
+pydantic==2.12.5
